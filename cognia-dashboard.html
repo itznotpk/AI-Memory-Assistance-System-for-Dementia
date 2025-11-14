@@ -1,0 +1,1856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cognia</title>
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            background-color: #F5F5F5;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #80DEEA 0%, #4DD0E1 100%);
+            color: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            font-size: 32px;
+            font-weight: bold;
+        }
+        
+        .menu-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        .menu-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .nav-panel {
+            position: fixed;
+            left: -300px;
+            top: 0;
+            width: 280px;
+            height: 100vh;
+            background: white;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+            transition: left 0.3s;
+            z-index: 200;
+            overflow-y: auto;
+        }
+        
+        .nav-panel.open {
+            left: 0;
+        }
+        
+        .nav-panel-header {
+            background: #80DEEA;
+            color: white;
+            padding: 20px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .nav-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid #E0E0E0;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .nav-item:hover {
+            background: #E0F7FA;
+        }
+        
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(3px);
+            z-index: 150;
+            display: none;
+        }
+        
+        .overlay.show {
+            display: block;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .section-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .dashboard-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .card {
+            background: #E0F7FA;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .card h3 {
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #00838F;
+        }
+        
+        .card p {
+            font-size: 16px;
+            color: #555;
+        }
+        
+        .video-container {
+            background: #F5F5F5;
+            border: 3px solid #80DEEA;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        .video-frame {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+            background: #ddd;
+        }
+        
+        .video-section-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+        
+        .activity-timeline {
+            background: #F5F5F5;
+            border-radius: 12px;
+            padding: 20px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .timeline-entry {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #E0E0E0;
+        }
+        
+        .timeline-entry:last-child {
+            border-bottom: none;
+        }
+        
+        .timeline-time {
+            font-weight: bold;
+            color: #00838F;
+            min-width: 70px;
+        }
+        
+        .timeline-content {
+            flex: 1;
+        }
+        
+        .timeline-location {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .timeline-action {
+            font-size: 14px;
+            color: #666;
+            margin-top: 3px;
+        }
+        
+        .room-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        
+        .room-btn {
+            flex: 1;
+            min-width: 120px;
+            padding: 12px 20px;
+            background: #80DEEA;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        .room-btn:hover {
+            background: #4DD0E1;
+        }
+        
+        .room-btn.active {
+            background: #00838F;
+        }
+
+        /* Horizontal week layout: show days in a row (scrollable on small screens) */
+        .week-grid {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            padding-bottom: 6px;
+            -webkit-overflow-scrolling: touch;
+            align-items: flex-start;
+        }
+
+        .day-column {
+            flex: 0 0 220px; /* fixed column width so all days line up horizontally */
+            min-width: 180px;
+            background: #FAFAFA;
+            padding: 12px;
+            border-radius: 8px;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .day-header { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+
+        @media (max-width: 1000px) {
+            .week-grid { gap: 10px; }
+            .day-column { flex: 0 0 180px; min-width: 160px; }
+        }
+        @media (max-width: 600px) {
+            .day-column { flex: 0 0 150px; min-width: 140px; }
+        }
+
+        /* New button design: distinct shapes, colours and small icon mark via ::before */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border: none;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 14px;
+            transition: transform .12s ease, box-shadow .12s ease, opacity .12s;
+            color: #fff;
+            box-shadow: 0 6px 18px rgba(16,24,40,0.06);
+        }
+
+        /* small decorative "icon" on the left of each button */
+        .btn::before {
+            content: "";
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex: 0 0 14px;
+            box-shadow: inset 0 -2px 0 rgba(0,0,0,0.08);
+        }
+
+        /* Primary — rounded pill blue */
+        .btn.btn-primary {
+            background: linear-gradient(135deg,#1565C0 0%,#1976D2 100%);
+            border-radius: 22px;
+        }
+        .btn.btn-primary::before { background: rgba(255,255,255,0.25); border-radius: 4px; }
+
+        /* Secondary — light card style with soft border (for Add / Show Report / Custom) */
+        .btn.btn-secondary {
+            background: #FFFFFF;
+            color: #263238;
+            border: 2px solid #ECEFF1;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(2,6,23,0.04);
+        }
+        .btn.btn-secondary::before { background: linear-gradient(180deg,#CFD8DC,#B0BEC5); border-radius:3px; }
+
+        /* Info — teal rounded square (for Quick Send / Edit) */
+        .btn.btn-info {
+            background: linear-gradient(135deg,#00897B 0%,#00BFA5 100%);
+            border-radius: 8px;
+        }
+        .btn.btn-info::before { background: rgba(255,255,255,0.28); border-radius: 2px; }
+
+        /* Simple, low-contrast button for inline actions (task Edit) */
+        .btn-simple {
+            background: transparent;
+            color: #00695C;              /* subtle teal */
+            border: 1px solid rgba(0,0,0,0.06);
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-size: 12px;
+            font-weight: 600;
+            box-shadow: none;
+            align-items: center;
+        }
+        .btn-simple::before { display: none; } /* hide decorative mark for compact control */
+        .btn-simple:hover { background: rgba(0,0,0,0.03); transform: none; }
+        .btn-simple:active { opacity: 0.95; }
+ 
+        /* Danger — circular red (used for prominent actions) */
+        .btn.btn-danger {
+            background: linear-gradient(135deg,#C62828 0%,#E53935 100%);
+            border-radius: 32px;
+            padding: 10px 14px;
+        }
+        .btn.btn-danger::before { background: rgba(255,255,255,0.3); border-radius: 50%; width:12px; height:12px; flex:0 0 12px; }
+
+        .btn:hover { transform: translateY(-3px); box-shadow: 0 12px 26px rgba(16,24,40,0.12); }
+        .btn:active { transform: translateY(-1px); opacity: 0.97; }
+        .btn:disabled { opacity: .6; cursor: not-allowed; transform: none; box-shadow: none; }
+        
+        /* keep emergency-btn as a distinct circular red button (no change) */
+        .emergency-btn {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: #D32F2F;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(211, 47, 47, 0.4);
+            transition: all 0.3s;
+            margin: 20px auto;
+            display: block;
+        }
+        
+        .emergency-btn:hover {
+            background: #B71C1C;
+            transform: scale(1.05);
+        }
+        
+        .notification-item {
+            background: white;
+            border-left: 4px solid #42A5F5;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .notification-item.warning {
+            border-left-color: #FFEB3B;
+            background: #FFFDE7;
+        }
+        
+        .notification-item.danger {
+            border-left-color: #FF5252;
+            background: #FFEBEE;
+        }
+        
+        .patient-profiles {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .patient-card {
+            background: #A5D6A7;
+            border-radius: 10px;
+            padding: 20px;
+            position: relative;
+        }
+        
+        .patient-card.blue {
+            background: #80DEEA;
+        }
+        
+        .patient-card h3 {
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+        
+        .patient-info {
+            margin-bottom: 10px;
+        }
+        
+        .caregiver-section {
+            background: rgba(255,255,255,0.3);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border-left: 4px solid rgba(0,0,0,0.2);
+        }
+        
+        .caregiver-label {
+            font-weight: bold;
+            font-size: 12px;
+            color: rgba(0,0,0,0.6);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        
+        .caregiver-field {
+            margin-bottom: 10px;
+        }
+        
+        .caregiver-field label {
+            display: block;
+            font-weight: bold;
+            font-size: 12px;
+            margin-bottom: 3px;
+            color: rgba(0,0,0,0.7);
+        }
+        
+        .caregiver-field input,
+        .caregiver-field select {
+            width: 100%;
+            padding: 6px;
+            border: 1px solid rgba(0,0,0,0.2);
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .progress-bar {
+            background: #E0E0E0;
+            height: 30px;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: #66BB6A;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .progress-fill.danger {
+            background: #FF5252;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(3px);
+            z-index: 300;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .modal-header {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #B0BEC5;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .modal-buttons button {
+            flex: 1;
+        }
+        
+        .medical-records {
+            margin-top: 20px;
+        }
+        
+        .medical-record-item {
+            background: #F5F5F5;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #42A5F5;
+        }
+        
+        .notification-bell {
+            position: relative;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 20px;
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #FF5252;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .report-summary {
+            background: #F5F5F5;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .report-section {
+            margin-bottom: 20px;
+        }
+        
+        .report-section h3 {
+            font-size: 18px;
+            font-weight: bold;
+            color: #00838F;
+            margin-bottom: 10px;
+        }
+        
+        .report-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #E0E0E0;
+        }
+        
+        .report-item:last-child {
+            border-bottom: none;
+        }
+        
+        .report-label {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .report-value {
+            color: #666;
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 24px;
+            }
+            
+            .dashboard-cards {
+                grid-template-columns: 1fr;
+            }
+            
+            .video-frame {
+                height: 250px;
+            }
+            
+            .video-section-wrapper {
+                grid-template-columns: 1fr;
+            }
+            
+            .patient-profiles {
+                grid-template-columns: 1fr;
+            }
+            
+            .modal-content {
+                width: 95%;
+                padding: 20px;
+            }
+        }
+
+        /* Chatbox (Messaging) styles */
+        .chatbox {
+            background: #F0F4F8;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            height: 420px;
+            max-height: 420px;
+            overflow: hidden;
+            border: 1px solid #E3E9EE;
+        }
+
+        .chat-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-bottom: 1px solid #E6EEF3;
+            background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.4));
+        }
+
+        .chat-header .meta { font-weight:700; color:#263238; }
+        .chat-header .sub { font-size:12px; color:#63707a; }
+
+        .chat-messages {
+            flex: 1;
+            padding: 14px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.01));
+        }
+
+        .message-row {
+            display: flex;
+            align-items: flex-end;
+            gap: 10px;
+        }
+        .message-row.sent { justify-content: flex-end; }
+        .message-row.received { justify-content: flex-start; }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-size: cover;
+            background-position: center;
+            flex: 0 0 36px;
+            border: 2px solid rgba(0,0,0,0.04);
+        }
+
+        .bubble {
+            max-width: 72%;
+            padding: 10px 14px;
+            border-radius: 14px;
+            box-shadow: 0 6px 14px rgba(16,24,40,0.06);
+            word-wrap: break-word;
+            background: #fff;
+            color: #222;
+        }
+        .bubble .sender { font-weight:700; font-size:13px; margin-bottom:6px; color:#0f3940; }
+        .bubble .body { font-size:14px; line-height:1.35; }
+        .bubble .ts { font-size:12px; color:#6b7280; margin-top:8px; display:block; }
+
+        .bubble.sent {
+            background: #80DEEA;
+            color: #042427;
+            border-bottom-right-radius: 6px;
+        }
+
+        .bubble.received {
+            background: #FFFFFF;
+            color: #0f2933;
+            border-bottom-left-radius: 6px;
+        }
+
+        .chat-input-area {
+            display: flex;
+            gap: 8px;
+            padding: 12px;
+            border-top: 1px solid #E6EEF3;
+            align-items: center;
+            background: #FAFCFD;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid #D6E2EA;
+            font-size: 14px;
+            background: white;
+            min-width: 120px;
+        }
+        .chat-input:focus { outline: none; border-color: #9FD7E0; box-shadow: 0 6px 18px rgba(16,24,40,0.04); }
+        .chat-select { padding: 10px; border-radius: 8px; border: 1px solid #D6E2EA; background: white; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useRef } = React;
+        const { useState: _useState, useRef: _useRef } = React; // placeholder to keep diff context
+        const { useState: __u, useRef: __r, useEffect } = React; // add useEffect
+
+        function App() {
+            // updated room images: Kitchen, Bedroom, Living Room
+            const roomImages = {
+                kitchen: 'https://images.unsplash.com/photo-1556911220-bff31c812dba?q=80&w=1268&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+                bedroom: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1400&q=60',
+                living: 'https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&w=1400&q=60'
+            };
+            const [menuOpen, setMenuOpen] = useState(false);
+            const [currentRoom, setCurrentRoom] = useState('kitchen');
+            const [tasks, setTasks] = useState([
+                { id: 1, name: 'Morning Medication', time: '8:00 AM', notes: 'Take blood pressure medication' },
+                { id: 2, name: 'Lunch Reminder', time: '12:30 PM', notes: 'Prepare lunch' },
+                { id: 3, name: 'Evening Walk', time: '5:00 PM', notes: 'Take a 15-minute walk' }
+            ]);
+            const [messages, setMessages] = useState([
+                { id: 1, sender: 'Caregiver', text: 'Good morning. Did you take your blood pressure medication at 8:00 AM?', type: 'sent', time: '8:05 AM' },
+                { id: 2, sender: 'Elderly', text: 'Yes, I took it already!', type: 'received', time: '8:10 AM' }
+            ]);
+            const [patients, setPatients] = useState([
+                {
+                    id: 1,
+                    name: 'Margaret Wilson',
+                    age: 78,
+                    stage: 'Moderate',
+                    lastCheckIn: '10 minutes ago',
+                    color: 'green',
+                    caregiver: {
+                        name: 'Sarah Wilson',
+                        relationship: 'Daughter',
+                        contactNumber: '555-0101',
+                        email: 'sarah.wilson@email.com',
+                        preferredContactTime: '9AM–9PM'
+                    },
+                    medicalRecords: [
+                        { id: 1, date: '2025-11-10', category: 'Check-up', notes: 'Regular monthly check-up completed' },
+                        { id: 2, date: '2025-11-01', category: 'Medication', notes: 'Increased dosage of memory medication' }
+                    ]
+                },
+                {
+                    id: 2,
+                    name: 'Robert Chen',
+                    age: 82,
+                    stage: 'Early',
+                    lastCheckIn: '2 hours ago',
+                    color: 'blue',
+                    caregiver: {
+                        name: 'Michael Chen',
+                        relationship: 'Son',
+                        contactNumber: '555-0102',
+                        email: 'michael.chen@email.com',
+                        preferredContactTime: '6PM–8PM'
+                    },
+                    medicalRecords: [
+                        { id: 1, date: '2025-11-12', category: 'Symptom', notes: 'Reported mild confusion in the evening' }
+                    ]
+                }
+            ]);
+            const [notifications, setNotifications] = useState([
+                { id: 1, type: 'warning', message: 'Task reminder: Morning Medication due', time: '7:55 AM' },
+                { id: 2, type: 'danger', message: 'Patient left safe zone', time: '6:30 AM' },
+                { id: 3, type: 'info', message: 'New message from patient', time: '8:10 AM' }
+            ]);
+            const [timeline, setTimeline] = useState([
+                { time: '8:00 AM', location: 'Bedroom', action: 'Woke up' },
+                { time: '8:05 AM', location: 'Bathroom', action: 'Brushing teeth' },
+                { time: '8:15 AM', location: 'Dining Room', action: 'Having breakfast' },
+                { time: '8:45 AM', location: 'Bedroom', action: 'Resting' },
+                { time: '9:10 AM', location: 'Living Room', action: 'Watching television' },
+                { time: '10:00 AM', location: 'Kitchen', action: 'Preparing meal' },
+                { time: '11:00 AM', location: 'Living Room', action: 'Reading newspaper' }
+            ]);
+            const [settings, setSettings] = useState({
+                frequency: 'hourly',
+                notifications: ['tasks', 'safety', 'messages'],
+                sensitivity: 5
+            });
+
+            const [modalState, setModalState] = useState({
+                addTask: false,
+                emergency: false,
+                settings: false,
+                notifications: false,
+                message: false,
+                addPatient: false,
+                editPatient: null,
+                addMedicalRecord: null,
+                confirmation: null,
+                report: false
+            });
+
+            const [formData, setFormData] = useState({});
+            const [messageInput, setMessageInput] = useState('');
+            const quickMessages = [
+                'How are you?',
+                'Do you need anything right now?',
+                'Reminder: Time for medication.',
+                "I will check in shortly."
+            ];
+            const [quickSelected, setQuickSelected] = useState(quickMessages[0]);
+
+            const caregiverAvatar = 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=60';
+            const elderlyAvatar = 'https://images.unsplash.com/photo-1502685104226-ee32379fefbe?auto=format&fit=crop&w=400&q=60';
+
+            // auto-scroll chat to bottom when messages change
+            useEffect(() => {
+                const el = document.getElementById('chatMessages');
+                if (el) el.scrollTop = el.scrollHeight;
+            }, [messages]);
+
+            const weekDays = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+            // tasks organized by day (time in "HH:MM" 24h format for consistent sorting)
+            const [tasksByDay, setTasksByDay] = useState({
+                Monday: [
+                    { id: 1, name: 'Morning Medication', time: '08:00', notes: 'Take blood pressure medication' },
+                    { id: 2, name: 'Breakfast', time: '08:30', notes: 'Light, high-protein meal' },
+                    { id: 3, name: 'Afternoon Walk', time: '15:30', notes: '15-minute stroll' }
+                ],
+                Tuesday: [
+                    { id: 4, name: 'Morning Medication', time: '08:00', notes: '' },
+                    { id: 5, name: 'Grocery Pickup', time: '11:00', notes: 'Buy milk and fruit' },
+                    { id: 6, name: 'Call Family', time: '19:00', notes: 'Check in with daughter' }
+                ],
+                Wednesday: [
+                    { id: 7, name: 'Morning Medication', time: '08:00', notes: '' },
+                    { id: 8, name: 'Doctor Appointment', time: '10:00', notes: 'Routine check-up' },
+                    { id: 9, name: 'Reading Time', time: '16:00', notes: '30 minutes of reading' }
+                ],
+                Thursday: [
+                    { id: 10, name: 'Morning Medication', time: '08:00', notes: '' },
+                    { id: 11, name: 'Hydration Reminder', time: '14:00', notes: 'Drink a glass of water' },
+                    { id: 12, name: 'Light Exercise', time: '17:00', notes: 'Chair exercises' }
+                ],
+                Friday: [
+                    { id: 13, name: 'Morning Medication', time: '08:00', notes: '' },
+                    { id: 14, name: 'Meal Prep', time: '12:00', notes: 'Prepare lunch for weekend' },
+                    { id: 15, name: 'TV Time', time: '20:00', notes: 'Watch favorite show' }
+                ],
+                Saturday: [
+                    { id: 16, name: 'Morning Medication', time: '08:00', notes: '' },
+                    { id: 17, name: 'Visit Park', time: '10:30', notes: 'Short outdoor visit' },
+                    { id: 18, name: 'Evening Relax', time: '19:00', notes: 'Listen to music' }
+                ],
+                Sunday: [
+                    { id: 19, name: 'Morning Medication', time: '08:00', notes: '' },
+                    { id: 20, name: 'Laundry', time: '11:00', notes: 'Light clothes only' },
+                    { id: 21, name: 'Plan Week', time: '18:00', notes: 'Review upcoming appointments' }
+                ]
+            });
+            const [nextTaskId, setNextTaskId] = useState(4);
+
+            const getTodayName = () => weekDays[new Date().getDay()];
+
+            const minutesFromTime = (t) => {
+                if (!t) return 0;
+                const parts = t.split(':');
+                return parseInt(parts[0] || 0) * 60 + parseInt(parts[1] || 0);
+            };
+
+            const sortTasksByTime = (a, b) => minutesFromTime(a.time) - minutesFromTime(b.time);
+
+            const getTasksForDay = (day) => (tasksByDay[day] || []).slice().sort(sortTasksByTime);
+
+            const handleOpenAddTask = (day) => {
+                setFormData({ taskName: '', taskTime: '', taskNotes: '', day });
+                openModal('addTask', { mode: 'add', day });
+            };
+
+            const handleEditTask = (day, taskId) => {
+                const task = (tasksByDay[day] || []).find(t => t.id === taskId);
+                if (!task) return;
+                setFormData({ taskName: task.name, taskTime: task.time, taskNotes: task.notes, day });
+                openModal('addTask', { mode: 'edit', day, taskId });
+            };
+
+            const handleSaveTask = () => {
+                const modalData = modalState.addTask || {};
+                const mode = modalData.mode || 'add';
+                const day = formData.day || modalData.day || getTodayName();
+                const name = (formData.taskName || '').trim();
+                const time = (formData.taskTime || '').trim();
+                const notes = formData.taskNotes || '';
+                if (!name || !time) {
+                    openModal('confirmation', 'Please provide task name and time');
+                    return;
+                }
+
+                if (mode === 'add') {
+                    const newTask = { id: nextTaskId, name, time, notes };
+                    const updated = [...(tasksByDay[day] || []), newTask].sort(sortTasksByTime);
+                    setTasksByDay({ ...tasksByDay, [day]: updated });
+                    setNextTaskId(nextTaskId + 1);
+                } else if (mode === 'edit') {
+                    const taskId = modalData.taskId;
+                    setTasksByDay(prev => {
+                        const list = (prev[day] || []).map(t => t.id === taskId ? { ...t, name, time, notes } : t).sort(sortTasksByTime);
+                        return { ...prev, [day]: list };
+                    });
+                }
+                closeModal();
+                openModal('confirmation', 'Task saved successfully');
+            };
+
+            const scrollToSection = (id) => {
+                document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+                setMenuOpen(false);
+            };
+
+            const openModal = (modalName, data = null) => {
+                setModalState({ ...Object.keys(modalState).reduce((acc, key) => ({ ...acc, [key]: false }), {}), [modalName]: data !== null ? data : true });
+                setFormData({});
+            };
+
+            const closeModal = () => {
+                setModalState(Object.keys(modalState).reduce((acc, key) => ({ ...acc, [key]: false }), {}));
+            };
+
+            const handleAddTask = () => {
+                if (formData.taskName && formData.taskTime) {
+                    const newTask = {
+                        id: tasks.length + 1,
+                        name: formData.taskName,
+                        time: formData.taskTime,
+                        notes: formData.taskNotes || ''
+                    };
+                    setTasks([...tasks, newTask]);
+                    closeModal();
+                    openModal('confirmation', 'Reminder Set Successfully');
+                }
+            };
+
+            const handleSendMessage = () => {
+                if (messageInput.trim()) {
+                    const newMessage = {
+                        id: messages.length + 1,
+                        sender: 'Caregiver',
+                        text: messageInput,
+                        type: 'sent',
+                        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    };
+                    setMessages([...messages, newMessage]);
+                    setMessageInput('');
+                }
+            };
+            
+            const handleSendQuickMessage = (text = null) => {
+                const msgText = (text || quickSelected || '').trim();
+                if (!msgText) return;
+                const newMessage = {
+                    id: messages.length + 1,
+                    sender: 'Caregiver',
+                    text: msgText,
+                    type: 'sent',
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                };
+                setMessages([...messages, newMessage]);
+            };
+            
+            const handleSendMessageFromModal = () => {
+                if (formData.messageText) {
+                    const newMessage = {
+                        id: messages.length + 1,
+                        sender: 'Caregiver',
+                        text: formData.messageText,
+                        type: 'sent',
+                        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    };
+                    setMessages([...messages, newMessage]);
+                    closeModal();
+                    openModal('confirmation', 'Message Sent Successfully');
+                }
+            };
+
+            const handleSaveSettings = () => {
+                setSettings({
+                    frequency: formData.frequency || settings.frequency,
+                    notifications: formData.notifications || settings.notifications,
+                    sensitivity: formData.sensitivity || settings.sensitivity
+                });
+                closeModal();
+                openModal('confirmation', 'Settings Saved Successfully');
+            };
+
+            const handleAddPatient = () => {
+                if (formData.patientName && formData.patientAge) {
+                    const newPatient = {
+                        id: patients.length + 1,
+                        name: formData.patientName,
+                        age: formData.patientAge,
+                        stage: formData.patientStage || 'Early',
+                        lastCheckIn: 'Just added',
+                        color: patients.length % 2 === 0 ? 'green' : 'blue',
+                        caregiver: {
+                            name: formData.caregiverName || '',
+                            relationship: formData.caregiverRelationship || '',
+                            contactNumber: formData.caregiverContact || '',
+                            email: formData.caregiverEmail || '',
+                            preferredContactTime: formData.preferredContactTime || ''
+                        },
+                        medicalRecords: []
+                    };
+                    setPatients([...patients, newPatient]);
+                    closeModal();
+                    openModal('confirmation', 'Patient Added Successfully');
+                }
+            };
+
+            const handleEditPatient = (patientId) => {
+                const patient = patients.find(p => p.id === patientId);
+                setFormData({
+                    patientName: patient.name,
+                    patientAge: patient.age,
+                    patientStage: patient.stage,
+                    caregiverName: patient.caregiver?.name || '',
+                    caregiverRelationship: patient.caregiver?.relationship || '',
+                    caregiverContact: patient.caregiver?.contactNumber || '',
+                    caregiverEmail: patient.caregiver?.email || '',
+                    preferredContactTime: patient.caregiver?.preferredContactTime || ''
+                });
+                openModal('editPatient', patientId);
+            };
+
+            const handleUpdatePatient = () => {
+                setPatients(patients.map(p => 
+                    p.id === modalState.editPatient 
+                        ? { 
+                            ...p, 
+                            name: formData.patientName, 
+                            age: formData.patientAge, 
+                            stage: formData.patientStage,
+                            caregiver: {
+                                name: formData.caregiverName,
+                                relationship: formData.caregiverRelationship,
+                                contactNumber: formData.caregiverContact,
+                                email: formData.caregiverEmail,
+                                preferredContactTime: formData.preferredContactTime
+                            }
+                        }
+                        : p
+                ));
+                closeModal();
+                openModal('confirmation', 'Profile Updated Successfully');
+            };
+
+            const handleAddMedicalRecord = () => {
+                if (formData.recordDate && formData.recordCategory) {
+                    setPatients(patients.map(p => {
+                        if (p.id === modalState.addMedicalRecord) {
+                            const newRecord = {
+                                id: (p.medicalRecords?.length || 0) + 1,
+                                date: formData.recordDate,
+                                category: formData.recordCategory,
+                                notes: formData.recordNotes || ''
+                            };
+                            return {
+                                ...p,
+                                medicalRecords: [...(p.medicalRecords || []), newRecord].sort((a, b) => new Date(b.date) - new Date(a.date))
+                            };
+                        }
+                        return p;
+                    }));
+                    closeModal();
+                    openModal('confirmation', 'Medical Record Added Successfully');
+                }
+            };
+
+            return (
+                <>
+                    <div className={`overlay ${menuOpen ? 'show' : ''}`} onClick={() => setMenuOpen(false)}></div>
+                    
+                    <div className={`nav-panel ${menuOpen ? 'open' : ''}`}>
+                        <div className="nav-panel-header">Navigation</div>
+                        <div className="nav-item" onClick={() => scrollToSection('dashboard')}>Dashboard</div>
+                        <div className="nav-item" onClick={() => scrollToSection('video')}>Live Video</div>
+                        <div className="nav-item" onClick={() => scrollToSection('tasks')}>Tasks & Reminders</div>
+                        <div className="nav-item" onClick={() => scrolltoSection('alerts')}>Safety Alerts</div>
+                        <div className="nav-item" onClick={() => scrollToSection('messaging')}>Messaging</div>
+                        <div className="nav-item" onClick={() => scrollToSection('notifications')}>Notifications</div>
+                        <div className="nav-item" onClick={() => scrollToSection('analytics')}>Analytics & Reports</div>
+                        <div className="nav-item" onClick={() => scrollToSection('patients')}>Patient Profiles</div>
+                        <div className="nav-item" onClick={() => scrollToSection('emergency')}>Emergency</div>
+                        <div className="nav-item" onClick={() => openModal('settings')}>Settings</div>
+                    </div>
+
+                    <header className="header">
+                        <div className="header-content">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                                <button className="menu-btn" onClick={() => setMenuOpen(!menuOpen)}>☰ Menu</button>
+                                <h1>Cognia</h1>
+                            </div>
+                            <button className="notification-bell" onClick={() => openModal('notifications')}>
+                                🔔
+                                {notifications.length > 0 && <span className="notification-badge">{notifications.length}</span>}
+                            </button>
+                        </div>
+                    </header>
+
+                    <div className="container">
+                        <section id="dashboard" className="section">
+                            <h2 className="section-title">Real-Time Dashboard</h2>
+                            <div className="dashboard-cards">
+                                <div className="card">
+                                    <h3>Current Activity</h3>
+                                    <p style={{ fontSize: '20px', fontWeight: 'bold' }}>Resting in Living Room</p>
+                                    <p style={{ color: '#66BB6A' }}>✓ Safe</p>
+                                </div>
+                                <div className="card">
+                                    <h3>Last Check-in</h3>
+                                    <p style={{ fontSize: '20px', fontWeight: 'bold' }}>10 minutes ago</p>
+                                    <p>All vitals normal</p>
+                                </div>
+                                <div className="card">
+                                    <h3>Today's Progress</h3>
+                                    <p style={{ fontSize: '20px', fontWeight: 'bold' }}>75%</p>
+                                    <p>Tasks completed</p>
+                                </div>
+                                <div className="card">
+                                    <h3>Health Status</h3>
+                                    <p style={{ fontSize: '20px', fontWeight: 'bold' }}>Good</p>
+                                    <p>No concerns detected</p>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section id="video" className="section">
+                            <h2 className="section-title">Live Video Feed</h2>
+                            <div className="video-section-wrapper">
+                                <div>
+                                    <div className="video-container">
+                                        <img src={roomImages[currentRoom]} alt={`${currentRoom} view`} className="video-frame" />
+                                    </div>
+                                    <div className="room-buttons">
+                                        <button 
+                                            className={`room-btn ${currentRoom === 'kitchen' ? 'active' : ''}`}
+                                            onClick={() => setCurrentRoom('kitchen')}
+                                        >
+                                            Kitchen
+                                        </button>
+                                        <button 
+                                            className={`room-btn ${currentRoom === 'bedroom' ? 'active' : ''}`}
+                                            onClick={() => setCurrentRoom('bedroom')}
+                                        >
+                                            Bedroom
+                                        </button>
+                                        <button 
+                                            className={`room-btn ${currentRoom === 'living' ? 'active' : ''}`}
+                                            onClick={() => setCurrentRoom('living')}
+                                        >
+                                            Living Room
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="activity-timeline">
+                                    <h3 style={{ marginBottom: '15px', color: '#00838F' }}>Activity Timeline</h3>
+                                    {timeline.map((entry, idx) => (
+                                        <div key={idx} className="timeline-entry">
+                                            <div className="timeline-time">{entry.time}</div>
+                                            <div className="timeline-content">
+                                                <div className="timeline-location">{entry.location}</div>
+                                                <div className="timeline-action">{entry.action}</div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </section>
+
+                        <section id="tasks" className="section">
+                            <h2 className="section-title">Daily Tasks</h2>
+                            <div className="week-grid" style={{ marginBottom: '12px' }}>
+                                {weekDays.map((day) => (
+                                    <div key={day} className="day-column">
+                                        <div className="day-header">
+                                            <span>{day}</span>
+                                            <button className="btn btn-secondary" style={{ padding: '6px 8px', fontSize: '12px' }} onClick={() => handleOpenAddTask(day)}>Add</button>
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                            {getTasksForDay(day).length === 0 && <div style={{ fontSize: '13px', color: '#999' }}>No tasks</div>}
+                                            {getTasksForDay(day).map(t => (
+                                                <div key={t.id} className="task-card">
+                                                    <div>
+                                                        <div style={{ fontWeight: 700 }}>{t.name}</div>
+                                                        <div className="task-meta">⏰ {t.time} {t.notes ? '— ' + t.notes : ''}</div>
+                                                    </div>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                        <button className="btn btn-simple" onClick={() => handleEditTask(day, t.id)}>Edit</button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                <button className="btn btn-secondary" onClick={() => openModal('report')}>Show Report</button>
+                            </div>
+                        </section>
+
+                        <section id="alerts" className="section">
+                            <h2 className="section-title">Safety Alerts</h2>
+                            <div className="alert-bar">
+                                <span>Patient left designated safe zone at 6:30 AM</span>
+                                <span style={{ fontSize: '14px' }}> 2 hours ago</span>
+                            </div>
+                            <div style={{ background: '#FFEBEE', padding: '15px', borderRadius: '8px', borderLeft: '4px solid #FF5252' }}>
+                                <p style={{ fontWeight: 'bold', marginBottom: '5px' }}>Unusual Activity Detected</p>
+                                <p>Patient has been in the bathroom for 25 minutes. Please check on them.</p>
+                                <p style={{ fontSize: '14px', color: '#666', marginTop: '5px' }}>3 hours ago</p>
+                            </div>
+                        </section>
+
+                        <section id="messaging" className="section">
+                            <h2 className="section-title">Messaging</h2>
+                            <div className="chatbox">
+                                <div className="chat-header">
+                                    <div style={{display:'flex',alignItems:'center',gap:12}}>
+                                        <div className="avatar" style={{backgroundImage:`url(${elderlyAvatar})`}}></div>
+                                        <div>
+                                            <div className="meta">Margaret Wilson</div>
+                                            <div className="sub">Last seen: 10 minutes ago</div>
+                                        </div>
+                                    </div>
+                                    <div style={{marginLeft:'auto'}}>
+                                        <button className="btn btn-secondary" onClick={() => openModal('notifications')}>Alerts</button>
+                                    </div>
+                                </div>
+
+                                <div className="chat-messages" id="chatMessages">
+                                    {messages.map(msg => {
+                                        const isSent = msg.type === 'sent';
+                                        const avatar = isSent ? caregiverAvatar : elderlyAvatar;
+                                        return (
+                                            <div key={msg.id} className={`message-row ${isSent ? 'sent' : 'received'}`}>
+                                                {!isSent && <div className="avatar" style={{backgroundImage:`url(${avatar})`}}></div>}
+                                                <div className={`bubble ${isSent ? 'sent' : 'received'}`}>
+                                                    <div className="sender">{msg.sender}</div>
+                                                    <div className="body">{msg.text}</div>
+                                                    <span className="ts">{msg.time}</span>
+                                                </div>
+                                                {isSent && <div className="avatar" style={{backgroundImage:`url(${avatar})`}}></div>}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                <div className="chat-input-area">
+                                    <input
+                                        type="text"
+                                        className="chat-input"
+                                        placeholder="Type a message..."
+                                        value={messageInput}
+                                        onChange={(e) => setMessageInput(e.target.value)}
+                                        onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                                    />
+                                    <select className="chat-select" value={quickSelected} onChange={(e) => setQuickSelected(e.target.value)}>
+                                        {quickMessages.map((q, i) => <option key={i} value={q}>{q}</option>)}
+                                    </select>
+                                    <button className="btn btn-primary" onClick={handleSendMessage}>Send</button>
+                                    <button className="btn btn-info" onClick={() => handleSendQuickMessage()}>Quick</button>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section id="notifications" className="section">
+                            <h2 className="section-title">Notifications Center</h2>
+                            {notifications.map(notif => (
+                                <div key={notif.id} className={`notification-item ${notif.type}`}>
+                                    <p style={{ fontWeight: 'bold', marginBottom: '5px' }}>{notif.message}</p>
+                                    <p style={{ fontSize: '14px', color: '#666' }}>{notif.time}</p>
+                                </div>
+                            ))}
+                        </section>
+
+                        <section id="analytics" className="section">
+                            <h2 className="section-title">Analytics & Reports</h2>
+                            <div style={{ marginBottom: '20px' }}>
+                                <h3 style={{ marginBottom: '10px' }}>Tasks Completed Today</h3>
+                                <div className="progress-bar">
+                                    <div className="progress-fill" style={{ width: '75%' }}>75%</div>
+                                </div>
+                            </div>
+                            <div style={{ marginBottom: '20px' }}>
+                                <h3 style={{ marginBottom: '10px' }}>Missed Tasks</h3>
+                                <div className="progress-bar">
+                                    <div className="progress-fill danger" style={{ width: '15%' }}>15%</div>
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                                <button className="btn btn-primary" onClick={() => openModal('report')}>Show Report</button>
+                            </div>
+                        </section>
+
+                        <section id="patients" className="section">
+                            <h2 className="section-title">Patient Profiles</h2>
+                            <div className="patient-profiles">
+                                {patients.map(patient => (
+                                    <div key={patient.id} className={`patient-card ${patient.color}`}>
+                                        <h3>{patient.name}</h3>
+                                        <div className="patient-info">
+                                            <p><strong>Age:</strong> {patient.age}</p>
+                                            <p><strong>Stage:</strong> {patient.stage}</p>
+                                            <p><strong>Last Check-in:</strong> {patient.lastCheckIn}</p>
+                                        </div>
+
+                                        <div className="caregiver-section">
+                                            <div className="caregiver-label">Primary Caregiver</div>
+                                            <div className="caregiver-field">
+                                                <p><strong>Name:</strong> {patient.caregiver?.name || 'Not set'}</p>
+                                            </div>
+                                            <div className="caregiver-field">
+                                                <p><strong>Relationship:</strong> {patient.caregiver?.relationship || 'Not set'}</p>
+                                            </div>
+                                            <div className="caregiver-field">
+                                                <p><strong>Contact:</strong> {patient.caregiver?.contactNumber || 'Not set'}</p>
+                                            </div>
+                                            <div className="caregiver-field">
+                                                <p><strong>Email:</strong> {patient.caregiver?.email || 'Not set'}</p>
+                                            </div>
+                                            <div className="caregiver-field">
+                                                <p><strong>Preferred Time:</strong> {patient.caregiver?.preferredContactTime || 'Not set'}</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <button className="btn btn-secondary" style={{ marginRight: '10px', marginTop: '10px', width: 'calc(50% - 5px)' }} onClick={() => handleEditPatient(patient.id)}>
+                                            Edit Profile
+                                        </button>
+                                        <button className="btn btn-info" style={{ marginTop: '10px', width: 'calc(50% - 5px)' }} onClick={() => openModal('addMedicalRecord', patient.id)}>
+                                            Add Medical Record
+                                        </button>
+                                        
+                                        {patient.medicalRecords && patient.medicalRecords.length > 0 && (
+                                            <div className="medical-records">
+                                                <h4 style={{ marginTop: '15px', marginBottom: '10px' }}>Medical History</h4>
+                                                {patient.medicalRecords.map(record => (
+                                                    <div key={record.id} className="medical-record-item">
+                                                        <p style={{ fontWeight: 'bold' }}>{record.date} - {record.category}</p>
+                                                        <p style={{ fontSize: '14px' }}>{record.notes}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                            <button className="btn btn-primary" style={{ marginTop: '20px' }} onClick={() => openModal('addPatient')}>
+                                Add New Patient
+                            </button>
+                        </section>
+
+                        <section id="emergency" className="section">
+                            <h2 className="section-title">Emergency Response</h2>
+                            <button className="emergency-btn" onClick={() => openModal('emergency')}>
+                                EMERGENCY
+                            </button>
+                        </section>
+                    </div>
+
+                    {/* Add Task Modal */}
+                    <div className={`modal ${modalState.addTask ? 'show' : ''}`} onClick={closeModal}>
+                        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                            <div className="modal-header">{(modalState.addTask && modalState.addTask.mode === 'edit') ? 'Edit Task' : 'Add New Task Reminder'}</div>
+                            <div className="form-group">
+                                <label>Task Name</label>
+                                <input 
+                                    type="text" 
+                                    placeholder="e.g., Afternoon Medication"
+                                    value={formData.taskName || ''}
+                                    onChange={(e) => setFormData({...formData, taskName: e.target.value})}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Day</label>
+                                <select value={formData.day || getTodayName()} onChange={(e) => setFormData({...formData, day: e.target.value})}>
+                                    {weekDays.map(d => <option key={d} value={d}>{d}</option>)}
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Time</label>
+                                <input 
+                                    type="time"
+                                    value={formData.taskTime || ''}
+                                    onChange={(e) => setFormData({...formData, taskTime: e.target.value})}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Notes / Reminder Message</label>
+                                <textarea 
+                                    placeholder="Additional notes..."
+                                    value={formData.taskNotes || ''}
+                                    onChange={(e) => setFormData({...formData, taskNotes: e.target.value})}
+                                ></textarea>
+                            </div>
+                            <div className="modal-buttons">
+                                <button className="btn btn-primary" onClick={handleSaveTask}>Save</button>
+                                <button className="btn btn-secondary" onClick={closeModal}>Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Emergency Modal */}
+                    <div className={`modal ${modalState.emergency ? 'show' : ''}`} onClick={closeModal}>
+                        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                            <div className="modal-header">Emergency Response</div>
+                            <p style={{ marginBottom: '20px', fontSize: '16px' }}>Choose an emergency action:</p>
+                            <div className="modal-buttons" style={{ flexDirection: 'column' }}>
+                                <button className="btn btn-danger" onClick={() => { closeModal(); openModal('confirmation', 'Emergency Services Called'); }}>
+                                    Call Emergency Services
+                                </button>
+                                <button className="btn btn-info" onClick={() => { closeModal(); openModal('confirmation', 'Caregiver Notified'); }}>
+                                    Notify Caregiver
+                                </button>
+                                <button className="btn btn-secondary" onClick={closeModal}>Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Settings Modal */}
+                    <div className={`modal ${modalState.settings ? 'show' : ''}`} onClick={closeModal}>
+                        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                            <div className="modal-header">Settings</div>
+                            <div className="form-group">
+                                <label>Reminder Frequency</label>
+                                <select 
+                                    defaultValue={settings.frequency}
+                                    onChange={(e) => setFormData({...formData, frequency: e.target.value})}
+                                >
+                                    <option value="hourly">Every Hour</option>
+                                    <option value="daily">Daily</option>
+                                    <option value="weekly">Weekly</option>
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Notification Types</label>
+                                <div>
+                                    <label style={{ fontWeight: 'normal', display: 'block', marginBottom: '5px' }}>
+                                        <input type="checkbox" defaultChecked style={{ marginRight: '10px' }} />
+                                        Task Reminders
+                                    </label>
+                                    <label style={{ fontWeight: 'normal', display: 'block', marginBottom: '5px' }}>
+                                        <input type="checkbox" defaultChecked style={{ marginRight: '10px' }} />
+                                        Safety Alerts
+                                    </label>
+                                    <label style={{ fontWeight: 'normal', display: 'block' }}>
+                                        <input type="checkbox" defaultChecked style={{ marginRight: '10px' }} />
+                                        Messages
+                                    </label>
+                                </div>
+                            </div>
+                            <div className="form-group">
+                                <label>Alert Sensitivity (1-10)</label>
+                                <input 
+                                    type="range" 
+                                    min="1" 
+                                    max="10" 
+                                    defaultValue={settings.sensitivity}
+                                    onChange={(e) => setFormData({...formData, sensitivity: e.target.value})}
+                                />
+                            </div>
+                            <div className="modal-buttons">
+                                <button className="btn btn-primary" onClick={handleSaveSettings}>Save Settings</button>
+                                <button className="btn btn-secondary" onClick={closeModal}>Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Notifications Modal */}
+                    <div className={`modal ${modalState.notifications ? 'show' : ''}`} onClick={closeModal}>
+                        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                            <div className="modal-header">Notifications</div>
+                            {notifications.map(notif => (
+                                <div key={notif.id} className={`notification-item ${notif.type}`} style={{ marginBottom: '10px' }}>
+                                    <p style={{ fontWeight: 'bold', marginBottom: '5px' }}>{notif.message}</p>
+                                    <p style={{ fontSize: '14px', color: '#666' }}>{notif.time}</p>
+                                </div>
+                            ))}
+                            <div className="modal-buttons">
+                                <button className="btn btn-secondary" onClick={closeModal}>Close</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Message Modal */}
+                    <div className={`modal ${modalState.message ? 'show' : ''}`} onClick={closeModal}>
+                        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                            <div className="modal-header">Send Message</div>
+                            <div className="form-group">
+                                <label>Message</label>
+                                <textarea 
+                                    placeholder="Type your message..."
+                                    onChange={(e) => setFormData({...formData, messageText: e.target.value})}
+                                ></textarea>
+                            </div>
+                            <div className="modal-buttons">
+                                <button className="btn btn-primary" onClick={handleSendMessageFromModal}>Send Message</button>
+                                <button className="btn btn-secondary" onClick={closeModal}>Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Report Modal */}
+                    <div className={`modal ${modalState.report ? 'show' : ''}`} onClick={closeModal}>
+                        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                            <div className="modal-header">Daily Report</div>
+                            
+                            <div className="report-summary">
+                                <div className="report-section">
+                                    <h3>Daily Summary</h3>
+                                    <div className="report-item">
+                                        <span className="report-label">Tasks Completed:</span>
+                                        <span className="report-value">8 / 10</span>
+                                    </div>
+                                    <div className="report-item">
+                                        <span className="report-label">Missed Reminders:</span>
+                                        <span className="report-value">2 (Medication at 9:00 AM, Exercise at 5:00 PM)</span>
+                                    </div>
+                                    <div className="report-item">
+                                        <span className="report-label">Medication Adherence:</span>
+                                        <span className="report-value">80%</span>
+                                    </div>
+                                    <div className="report-item">
+                                        <span className="report-label">Safety Incidents:</span>
+                                        <span className="report-value">1 (Left safe zone at 6:30 AM, returned at 6:40 AM)</span>
+                                    </div>
+                                </div>
+
+                                <div className="report-section">
+                                    <h3>Behavior Insights</h3>
+                                    <div className="report-item">
+                                        <span className="report-label">Living Room:</span>
+                                        <span className="report-value">3.5 hours</span>
+                                    </div>
+                                    <div className="report-item">
+                                        <span className="report-label">Bedroom:</span>
+                                        <span className="report-value">2 hours</span>
+                                    </div>
+                                    <div className="report-item">
+                                        <span className="report-label">Kitchen:</span>
+                                        <span className="report-value">1 hour</span>
+                                    </div>
+                                    <div className="report-item">
+                                        <span className="report-label">Most Common Activity:</span>
+                                        <span className="report-value">Watching television in Living Room</span>
+                                    </div>
+                                    <div className="report-item">
+                                        <span className="report-label">Sleep Quality:</span>
+                                        <span className="report-value">7.5 hours, minimal interruptions</span>
+                                    </div>
+                                </div>
+
+                                <div className="report-section">
+                                    <h3>Caregiver Notes</h3>
+                                    <div className="report-item">
+                                        <span className="report-label">Summary:</span>
+                                        <span className="report-value">Patient had a good day. Maintained regular medication schedule and appeared comfortable throughout the day.</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="modal-buttons">
+                                <button className="btn btn-secondary" onClick={closeModal}>Close</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Add Patient Modal */}
+                    <div className={`modal ${modalState.addPatient ? 'show' : ''}`} onClick={closeModal}>
+                        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                            <div className="modal-header">Add New Patient</div>
+                            <div className="form-group">
+                                <label>Name</label>
+                                <input 
+                                    type="text" 
+                                    placeholder="Patient name"
+                                    onChange={(e) => setFormData({...formData, patientName: e.target.value})}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Age</label>
+                                <input 
+                                    type="number" 
+                                    placeholder="Age"
+                                    onChange={(e) => setFormData({...formData, patientAge: e.target.value})}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Dementia Stage</label>
+                                <select onChange={(e) => setFormData({...formData, patientStage: e.target.value})}>
+                                    <option value="Early">Early</option>
+                                    <option value="Moderate">Moderate</option>
+                                    <option value="Advanced">Advanced</option>
+                                </select>
+                            </div>
+                            <div style={{ borderTop: '2px solid #E0E0E0', paddingTop: '20px', marginTop: '20px' }}>
+                                <h4 style={{ marginBottom: '15px', color: '#00838F' }}>Caregiver Information</h4>
+                                <div className="form-group">
+                                    <label>Caregiver Name</label>
+                                    <input 
+                                        type="text" 
+                                        placeholder="Name"
+                                        onChange={(e) => setFormData({...formData, caregiverName: e.target.value})}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Relationship</label>
+                                    <select onChange={(e) => setFormData({...formData, caregiverRelationship: e.target.value})}>
+                                        <option value="">Select relationship</option>
+                                        <option value="Spouse">Spouse</option>
+                                        <option value="Son">Son</option>
+                                        <option value="Daughter">Daughter</option>
+                                        <option value="Nurse">Nurse</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div className="form-group">
+                                    <label>Contact Number</label>
+                                    <input 
+                                        type="tel" 
+                                        placeholder="Phone number"
+                                        onChange={(e) => setFormData({...formData, caregiverContact: e.target.value})}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Email</label>
+                                    <input 
+                                        type="email" 
+                                        placeholder="Email address"
+                                        onChange={(e) => setFormData({...formData, caregiverEmail: e.target.value})}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Preferred Contact Time</label>
+                                    <input 
+                                        type="text" 
+                                        placeholder="e.g., 9AM–9PM"
+                                        onChange={(e) => setFormData({...formData, preferredContactTime: e.target.value})}
+                                    />
+                                </div>
+                            </div>
+                            <div className="modal-buttons">
+                                <button className="btn btn-primary" onClick={handleAddPatient}>Add Patient</button>
+                                <button className="btn btn-secondary" onClick={closeModal}>Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Edit Patient Modal */}
+                    <div className={`modal ${modalState.editPatient ? 'show' : ''}`} onClick={closeModal}>
+                        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                            <div className="modal-header">Edit Patient Profile</div>
+                            <div className="form-group">
+                                <label>Name</label>
+                                <input 
+                                    type="text" 
+                                    value={formData.patientName || ''}
+                                    onChange={(e) => setFormData({...formData, patientName: e.target.value})}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Age</label>
+                                <input 
+                                    type="number" 
+                                    value={formData.patientAge || ''}
+                                    onChange={(e) => setFormData({...formData, patientAge: e.target.value})}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Dementia Stage</label>
+                                <select 
+                                    value={formData.patientStage || 'Early'}
+                                    onChange={(e) => setFormData({...formData, patientStage: e.target.value})}
+                                >
+                                    <option value="Early">Early</option>
+                                    <option value="Moderate">Moderate</option>
+                                    <option value="Advanced">Advanced</option>
+                                </select>
+                            </div>
+                            <div style={{ borderTop: '2px solid #E0E0E0', paddingTop: '20px', marginTop: '20px' }}>
+                                <h4 style={{ marginBottom: '15px', color: '#00838F' }}>Caregiver Information</h4>
+                                <div className="form-group">
+                                    <label>Caregiver Name</label>
+                                    <input 
+                                        type="text" 
+                                        value={formData.caregiverName || ''}
+                                        onChange={(e) => setFormData({...formData, caregiverName: e.target.value})}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Relationship</label>
+                                    <select 
+                                        value={formData.caregiverRelationship || ''}
+                                        onChange={(e) => setFormData({...formData, caregiverRelationship: e.target.value})}
+                                    >
+                                        <option value="">Select relationship</option>
+                                        <option value="Spouse">Spouse</option>
+                                        <option value="Son">Son</option>
+                                        <option value="Daughter">Daughter</option>
+                                        <option value="Nurse">Nurse</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div className="form-group">
+                                    <label>Contact Number</label>
+                                    <input 
+                                        type="tel" 
+                                        value={formData.caregiverContact || ''}
+                                        onChange={(e) => setFormData({...formData, caregiverContact: e.target.value})}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Email</label>
+                                    <input 
+                                        type="email" 
+                                        value={formData.caregiverEmail || ''}
+                                        onChange={(e) => setFormData({...formData, caregiverEmail: e.target.value})}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label>Preferred Contact Time</label>
+                                    <input 
+                                        type="text" 
+                                        value={formData.preferredContactTime || ''}
+                                        onChange={(e) => setFormData({...formData, preferredContactTime: e.target.value})}
+                                    />
+                                </div>
+                            </div>
+                            <div className="modal-buttons">
+                                <button className="btn btn-primary" onClick={handleUpdatePatient}>Save Changes</button>
+                                <button className="btn btn-secondary" onClick={closeModal}>Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Add Medical Record Modal */}
+                    <div className={`modal ${modalState.addMedicalRecord ? 'show' : ''}`} onClick={closeModal}>
+                        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                            <div className="modal-header">Add Medical Record</div>
+                            <div className="form-group">
+                                <label>Date</label>
+                                <input 
+                                    type="date"
+                                    onChange={(e) => setFormData({...formData, recordDate: e.target.value})}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Category</label>
+                                <select onChange={(e) => setFormData({...formData, recordCategory: e.target.value})}>
+                                    <option value="">Select category</option>
+                                    <option value="Check-up">Check-up</option>
+                                    <option value="Medication">Medication</option>
+                                    <option value="Symptom">Symptom</option>
+                                    <option value="Emergency">Emergency</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Notes</label>
+                                <textarea 
+                                    placeholder="Medical record details..."
+                                    onChange={(e) => setFormData({...formData, recordNotes: e.target.value})}
+                                ></textarea>
+                            </div>
+                            <div className="modal-buttons">
+                                <button className="btn btn-primary" onClick={handleAddMedicalRecord}>Add Record</button>
+                                <button className="btn btn-secondary" onClick={closeModal}>Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Confirmation Modal */}
+                    <div className={`modal ${modalState.confirmation ? 'show' : ''}`} onClick={closeModal}>
+                        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                            <div className="modal-header">✅ Success</div>
+                            <p style={{ fontSize: '18px', marginBottom: '20px', textAlign: 'center' }}>
+                                {modalState.confirmation}
+                            </p>
+                            <div className="modal-buttons">
+                                <button className="btn btn-primary" onClick={closeModal}>OK</button>
+                            </div>
+                        </div>
+                    </div>
+                </>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
