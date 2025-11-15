@@ -6,6 +6,14 @@ import json
 import os
 from collections import deque
 from ultralytics import YOLO
+import threading
+from flask import Flask, jsonify
+from flask_cors import CORS
+
+# Thread-safe state for API
+state_lock = threading.Lock()
+last_presence = None
+api_app = None
 
 # Optional Firebase (Firestore) support
 try:
@@ -19,6 +27,8 @@ except Exception:
 SPEC_EVERY_N = 3  # run spectacles model every N frames
 LAST_SEEN_JSON_PATH = 'last_spec_seen.json'
 PRESENCE_PUSH_INTERVAL = 15  # seconds between periodic location updates
+PRESENCE_JSON_PATH = 'presence.json'
+API_HOST, API_PORT = '0.0.0.0', 5000
 
 # Firebase config (set FIREBASE_ENABLED=True and provide a service account JSON to enable)
 FIREBASE_ENABLED = True
@@ -126,22 +136,25 @@ def save_last_seen():
         data = dict(last_spec_seen)
         if isinstance(data.get('bbox'), tuple):
             data['bbox'] = list(data['bbox'])
+        # human readable time
+        if data.get('time'):
+            data['time_iso'] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(data['time']))
         with open(LAST_SEEN_JSON_PATH, 'w') as f:
             json.dump(data, f, indent=2)
     except Exception as e:
         print(f"Failed to save {LAST_SEEN_JSON_PATH}: {e}")
-    # Firestore
-    try:
-        if db is not None:
-            payload = dict(last_spec_seen)
-            if isinstance(payload.get('bbox'), tuple):
-                payload['bbox'] = list(payload['bbox'])
-            # Also include ISO time for easy reading
-            if payload.get('time'):
-                payload['time_iso'] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(payload['time']))
-            db.collection(FIREBASE_COLLECTION).document(FIREBASE_DOC).set(payload)
-    except Exception as e:
-        print(f"Failed to write to Firebase: {e}")
+    # Firestore write removed for last_seen (optional) to keep it local-only
+    # try:
+    #     if db is not None:
+    #         payload = dict(last_spec_seen)
+    #         if isinstance(payload.get('bbox'), tuple):
+    #             payload['bbox'] = list(payload['bbox'])
+    #         # Also include ISO time for easy reading
+    #         if payload.get('time'):
+    #             payload['time_iso'] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(payload['time']))
+    #         db.collection(FIREBASE_COLLECTION).document(FIREBASE_DOC).set(payload)
+    # except Exception as e:
+    #     print(f"Failed to write to Firebase: {e}")
 
 def evaluate_frame(object_dict):
     objs = {lbl: conf for lbl, conf in object_dict.items() if lbl in KITCHEN_OBJECTS}
@@ -195,9 +208,8 @@ def detect_spectacles(frame):
     return result.boxes, result.names
 
 def push_presence_update(location, reason, is_kitchen, score=None):
-    """Write current patient presence to Firestore (without spectacles data)."""
-    if db is None:
-        return
+    """Update in-memory presence + write presence.json (no Firebase)."""
+    global last_presence
     try:
         ts = time.time()
         payload = {
@@ -208,15 +220,92 @@ def push_presence_update(location, reason, is_kitchen, score=None):
             'time': ts,
             'time_iso': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(ts))
         }
-        db.collection(FIREBASE_PRESENCE_COLLECTION).document(FIREBASE_PRESENCE_DOC).set(payload)
+        with state_lock:
+            last_presence = payload
+        # persist to file so external tools can read if needed
+        with open(PRESENCE_JSON_PATH, 'w') as f:
+            json.dump(payload, f, indent=2)
     except Exception as e:
         print(f"Presence update failed: {e}")
+
+def start_api_server():
+    """Start a small Flask server in a background thread."""
+    global api_app
+    api_app = Flask(__name__)
+    CORS(api_app, resources={r"/api/*": {"origins": "*"}})
+
+    @api_app.get("/api/health")
+    def health():
+        return jsonify({
+            "ok": True,
+            "api": "online",
+            "last_seen_file": os.path.exists(LAST_SEEN_JSON_PATH),
+            "presence_file": os.path.exists(PRESENCE_JSON_PATH),
+        })
+
+    @api_app.get("/api/last_seen")
+    def api_last_seen():
+        with state_lock:
+            data = dict(last_spec_seen) if last_spec_seen else None
+        # ensure time_iso present
+        if data and data.get('time') and not data.get('time_iso'):
+            data['time_iso'] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(data['time']))
+        return jsonify({"ok": data is not None, "last_seen": data})
+
+    @api_app.get("/api/presence")
+    def api_presence():
+        with state_lock:
+            data = dict(last_presence) if last_presence else None
+        return jsonify({"ok": data is not None, "presence": data})
+
+    @api_app.get("/api/summary")
+    def api_summary():
+        with state_lock:
+            ls = dict(last_spec_seen) if last_spec_seen else None
+            pr = dict(last_presence) if last_presence else None
+        if ls and ls.get('time') and not ls.get('time_iso'):
+            ls['time_iso'] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(ls['time']))
+        return jsonify({"ok": bool(ls or pr), "last_seen": ls, "presence": pr})
+
+    t = threading.Thread(target=lambda: api_app.run(host=API_HOST, port=API_PORT, debug=False, use_reloader=False, threaded=True),
+                         daemon=True)
+    t.start()
+    print(f"API server listening at http://localhost:{API_PORT}")
 
 # Init persisted state and Firebase
 load_last_seen()
 init_firebase()
+# Add: start API before camera loop
+start_api_server()
 
-cap = cv2.VideoCapture(0)
+# Add a robust camera opener
+def open_camera(preferred_size=(640, 480)):
+    trials = [
+        (0, cv2.CAP_DSHOW),
+        (0, cv2.CAP_MSMF),
+        (0, cv2.CAP_ANY),
+        (1, cv2.CAP_DSHOW),
+        (1, cv2.CAP_MSMF),
+        (1, cv2.CAP_ANY),
+    ]
+    for idx, backend in trials:
+        cap = cv2.VideoCapture(idx, backend)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, preferred_size[0])
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, preferred_size[1])
+        if cap.isOpened():
+            ok, _ = cap.read()
+            if ok:
+                print(f"Using camera index {idx} with backend {backend}")
+                return cap
+        cap.release()
+    return None
+
+# Replace the direct VideoCapture with the robust opener
+cap = open_camera((640, 480))
+if cap is None:
+    print("Error: Could not access any webcam. Close other apps (Teams/Zoom), enable Windows camera access, or try a different USB port.")
+    raise SystemExit(1)
+
 print("Press 'q' to quit")
 
 frame_idx = 0
