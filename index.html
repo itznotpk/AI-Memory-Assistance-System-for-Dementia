@@ -763,9 +763,7 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useRef } = React;
-        const { useState: _useState, useRef: _useRef } = React; // placeholder to keep diff context
-        const { useState: __u, useRef: __r, useEffect } = React; // add useEffect
+        const { useState, useRef, useEffect } = React;
 
         function App() {
             // updated room images: Kitchen, Bedroom, Living Room
@@ -825,26 +823,127 @@
                 }
             ]);
             const [notifications, setNotifications] = useState([
-                { id: 1, type: 'warning', message: 'Task reminder: Morning Medication due', time: '7:55 AM' },
-                { id: 2, type: 'danger', message: 'Patient left safe zone', time: '6:30 AM' },
-                { id: 3, type: 'info', message: 'New message from patient', time: '8:10 AM' }
-            ]);
-            const [timeline, setTimeline] = useState([
-                { time: '8:00 AM', location: 'Bedroom', action: 'Woke up' },
-                { time: '8:05 AM', location: 'Bathroom', action: 'Brushing teeth' },
-                { time: '8:15 AM', location: 'Dining Room', action: 'Having breakfast' },
-                { time: '8:45 AM', location: 'Bedroom', action: 'Resting' },
-                { time: '9:10 AM', location: 'Living Room', action: 'Watching television' },
-                { time: '10:00 AM', location: 'Kitchen', action: 'Preparing meal' },
-                { time: '11:00 AM', location: 'Living Room', action: 'Reading newspaper' }
-            ]);
-            const [settings, setSettings] = useState({
-                frequency: 'hourly',
-                notifications: ['tasks', 'safety', 'messages'],
-                sensitivity: 5
-            });
+                 { id: 1, type: 'warning', message: 'Task reminder: Morning Medication due', time: '7:55 AM' },
+                 { id: 2, type: 'danger', message: 'Patient left safe zone', time: '6:30 AM' },
+                 { id: 3, type: 'info', message: 'New message from patient', time: '8:10 AM' }
+             ]);
+             // API connection state for Flask endpoints in Scene_Prediction.py
+             const [apiHost, setApiHost] = useState('http://127.0.0.1:5000');
+              const [apiConnected, setApiConnected] = useState(false);
+              const pollRef = useRef(null);
+             // small sane defaults used elsewhere
+             const [settings, setSettings] = useState({ frequency: 'daily', notifications: true, sensitivity: 5 });
+             const timeline = [
+                 { time: '08:00', location: 'Kitchen', action: 'Made breakfast' },
+                 { time: '10:15', location: 'Living Room', action: 'Watched TV' },
+                 { time: '13:00', location: 'Bedroom', action: 'Resting' }
+             ];
+            // presence / spectacles control state to avoid spam
+            const lastPresenceLocationRef = useRef(null); // last location we notified about
+            const lastPresenceNotifyAtRef = useRef(0);
+            const PRESENCE_COOLDOWN_MS = 15000; // minimum ms between presence-change notifications
+            const lastSpecSeenTsRef = useRef(null); // dedupe spec-response notifications
+            const [specResultData, setSpecResultData] = useState(null); // shown after "Find Spectacles"
 
-            const [modalState, setModalState] = useState({
+             const makeNotification = (type, message) => ({
+                 id: Date.now() + Math.floor(Math.random()*999),
+                 type,
+                 message,
+                 time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+             });
+
+             const addNotification = (notif) => {
+                 setNotifications(prev => [notif, ...prev].slice(0, 50)); // keep latest 50
+             };
+
+            // Only handle presence-change notifications here to avoid spam.
+            // Spectacle lookup is triggered explicitly by the user (Find Spectacles).
+            const pollSummary = async () => {
+                try {
+                    const res = await fetch(`${apiHost.replace(/\/$/, '')}/api/summary`, { cache: 'no-store' });
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    const json = await res.json();
+                    if (!json) return;
+                    const p = json.presence;
+                    if (p && p.location) {
+                        const now = Date.now();
+                        const lastLoc = lastPresenceLocationRef.current;
+                        // normalize simple strings (e.g., "Kitchen" / "EE Department Level 3")
+                        const loc = String(p.location || 'EE Department Level 3');
+                        if (lastLoc === null) {
+                            // first time, set but do not notify immediately
+                            lastPresenceLocationRef.current = loc;
+                        } else if (loc !== lastLoc && (now - lastPresenceNotifyAtRef.current) >= PRESENCE_COOLDOWN_MS) {
+                            // meaningful change — notify caregiver once
+                            const msg = `Location change: ${lastLoc} → ${loc}${p.reason ? ' (' + p.reason + ')' : ''}`;
+                            addNotification(makeNotification('warning', msg));
+                            lastPresenceLocationRef.current = loc;
+                            lastPresenceNotifyAtRef.current = now;
+                        }
+                    }
+                } catch (err) {
+                    // console only — keep UI quiet on transient errors
+                    console.warn('API poll error', err);
+                }
+            };
+
+             const connectApi = async () => {
+                 try {
+                     const health = await fetch(`${apiHost.replace(/\/$/, '')}/api/health`, { cache: 'no-store' });
+                     if (!health.ok) throw new Error('health failed');
+                     setApiConnected(true);
+                     addNotification(makeNotification('info', `Connected to API: ${apiHost}`));
+                     // run an immediate poll then start interval
+                     await pollSummary();
+                     if (pollRef.current) clearInterval(pollRef.current);
+                     pollRef.current = setInterval(pollSummary, 5000);
+                 } catch (err) {
+                     setApiConnected(false);
+                     addNotification(makeNotification('danger', `Failed to connect to ${apiHost}`));
+                 }
+             };
+
+             const disconnectApi = () => {
+                 if (pollRef.current) {
+                     clearInterval(pollRef.current);
+                     pollRef.current = null;
+                 }
+                 setApiConnected(false);
+                 addNotification(makeNotification('info', `Disconnected from API`));
+             };
+
+            // Called when caregiver requests spectacles info — always send a notification
+            const handleFindSpectacles = async () => {
+                try {
+                    const res = await fetch(`${apiHost.replace(/\/$/, '')}/api/last_seen`, { cache: 'no-store' });
+                    let json = null;
+                    try { json = await res.json(); } catch(e) { json = null; }
+                    // API may return { last_seen: {...} } or the object directly
+                    const ls = (json && (json.last_seen || json.lastSeen)) ? (json.last_seen || json.lastSeen) : (json || {});
+
+                    // ensure sensible defaults
+                    const place = ls.place || specResultData?.place || 'EE Department Level 3';
+                    const timeVal = ls.time || specResultData?.time || null;
+                    const timeStr = ls.time_iso || (timeVal ? new Date(timeVal * 1000).toLocaleString() : 'N/A');
+                    const conf = (typeof ls.conf === 'number') ? ` (conf ${ls.conf.toFixed(2)})` : '';
+
+                    // persist locally in UI state so modal can show it
+                    setSpecResultData({ place, time: timeVal, time_iso: timeStr, conf: ls.conf || specResultData?.conf });
+
+                    // Always create a caregiver notification when this action is triggered
+                    addNotification(makeNotification('info', `Spectacles info sent: last seen in ${place} @ ${timeStr}${conf}`));
+                    openModal('specResult');
+                } catch (err) {
+                    // network error — fall back to last-known data or default location
+                    const ls = specResultData || { place: 'EE Department Level 3', time: null, conf: null };
+                    const timeStr = ls.time_iso || (ls.time ? new Date(ls.time * 1000).toLocaleString() : 'N/A');
+                    addNotification(makeNotification('info', `Spectacles info sent: last seen in ${ls.place || 'EE Department Level 3'} @ ${timeStr}`));
+                    setSpecResultData(ls);
+                    openModal('specResult');
+                }
+            };
+
+             const [modalState, setModalState] = useState({
                 addTask: false,
                 emergency: false,
                 settings: false,
@@ -854,7 +953,8 @@
                 editPatient: null,
                 addMedicalRecord: null,
                 confirmation: null,
-                report: false
+                report: false,
+                specResult: false
             });
 
             const [formData, setFormData] = useState({});
@@ -1141,7 +1241,7 @@
                         <div className="nav-item" onClick={() => scrollToSection('dashboard')}>Dashboard</div>
                         <div className="nav-item" onClick={() => scrollToSection('video')}>Live Video</div>
                         <div className="nav-item" onClick={() => scrollToSection('tasks')}>Tasks & Reminders</div>
-                        <div className="nav-item" onClick={() => scrolltoSection('alerts')}>Safety Alerts</div>
+                        <div className="nav-item" onClick={() => scrollToSection('alerts')}>Safety Alerts</div>
                         <div className="nav-item" onClick={() => scrollToSection('messaging')}>Messaging</div>
                         <div className="nav-item" onClick={() => scrollToSection('notifications')}>Notifications</div>
                         <div className="nav-item" onClick={() => scrollToSection('analytics')}>Analytics & Reports</div>
@@ -1155,6 +1255,18 @@
                             <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                                 <button className="menu-btn" onClick={() => setMenuOpen(!menuOpen)}>☰ Menu</button>
                                 <h1>Cognia</h1>
+                            </div>
+                            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                                <select value={apiHost} onChange={(e) => setApiHost(e.target.value)} style={{ padding:6, borderRadius:6 }}>
+                                    <option value="http://127.0.0.1:5000">http://127.0.0.1:5000</option>
+                                    <option value="http://10.164.66.93:5000">http://10.164.66.93:5000</option>
+                                </select>
+                                <button className="btn btn-secondary" onClick={() => apiConnected ? disconnectApi() : connectApi()}>
+                                    {apiConnected ? 'Disconnect' : 'Connect API'}
+                                </button>
+                                <button className="btn btn-info" onClick={handleFindSpectacles} title="Send spectacles last-seen info to caregiver">
+                                    Send Spectacles Info
+                                </button>
                             </div>
                             <button className="notification-bell" onClick={() => openModal('notifications')}>
                                 🔔
@@ -1843,6 +1955,21 @@
                             </p>
                             <div className="modal-buttons">
                                 <button className="btn btn-primary" onClick={closeModal}>OK</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Spectacle result modal (shown only when patient asks) */}
+                    <div className={`modal ${modalState.specResult ? 'show' : ''}`} onClick={closeModal}>
+                        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                            <div className="modal-header">Cognia — Spectacles Lookup</div>
+                            <>
+                                <p style={{ fontWeight: '700' }}>Last seen: {specResultData?.place || 'EE Department Level 3'}</p>
+                                <p>Time: {specResultData?.time_iso || (specResultData?.time ? new Date(specResultData.time * 1000).toLocaleString() : 'N/A')}</p>
+                                <p>Confidence: {typeof specResultData?.conf === 'number' ? specResultData.conf.toFixed(2) : 'N/A'}</p>
+                            </>
+                            <div className="modal-buttons">
+                                <button className="btn btn-primary" onClick={closeModal}>Close</button>
                             </div>
                         </div>
                     </div>
