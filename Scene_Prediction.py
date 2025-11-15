@@ -60,6 +60,9 @@ BOX_COLORS = {
 }
 SPEC_COLOR = (255, 255, 0)      # cyan for spectacles
 
+# Hide boxes for certain classes in the visualization (e.g., Fridge)
+HIDDEN_BOXES = {'Fridge'}
+
 # Per-object weights
 WEIGHTS = {
     'Stove': 3.0,
@@ -91,7 +94,7 @@ last_reason = "awaiting sufficient evidence"
 
 # Track last time/place spectacles were seen
 last_spec_seen = {
-    'place': None,       # "Kitchen" or "Unknown"
+    'place': None,       # "Kitchen" or "EE Department Level 3"
     'time': None,        # epoch seconds
     'conf': None,        # float
     'bbox': None,        # (x1,y1,x2,y2)
@@ -213,7 +216,7 @@ def push_presence_update(location, reason, is_kitchen, score=None):
     try:
         ts = time.time()
         payload = {
-            'location': location,            # 'Kitchen' or 'Unknown'
+            'location': location,            # 'Kitchen' or 'EE Department Level 3'
             'is_kitchen': bool(is_kitchen),
             'reason': reason or '',
             'score': float(score) if score is not None else None,
@@ -325,7 +328,7 @@ while True:
     # Push presence when state changes or periodically
     now = time.time()
     if (prev_kitchen_now is None) or (kitchen_now != prev_kitchen_now) or (now - last_presence_push >= PRESENCE_PUSH_INTERVAL):
-        loc = 'Kitchen' if kitchen_now else 'Unknown'
+        loc = 'Kitchen' if kitchen_now else 'EE Department Level 3'
         push_presence_update(loc, reason, kitchen_now, score)
         last_presence_push = now
         prev_kitchen_now = kitchen_now
@@ -353,7 +356,7 @@ while True:
 
         # Update last seen (Kitchen or Unknown) and persist
         if best_spec_conf is not None and best_spec_conf >= SPEC_THRESHOLD:
-            place = 'Kitchen' if kitchen_now else 'Unknown'
+            place = 'Kitchen' if kitchen_now else 'EE Department Level 3'
             last_spec_seen.update({
                 'place': place,
                 'time': time.time(),
@@ -384,6 +387,9 @@ while True:
         cls_id = int(box.cls[0])
         conf = float(box.conf[0])
         label = names[cls_id]
+        # Skip drawing boxes for any label in HIDDEN_BOXES
+        if label in HIDDEN_BOXES:
+            continue
         x1, y1, x2, y2 = map(int, box.xyxy[0])
         color = BOX_COLORS.get(label, (100, 100, 100))
         cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
